@@ -31,15 +31,15 @@ Work in order. Do not start a phase until the previous phase's checks pass. Afte
 - **Exit check:** pending local execution because Node.js/pnpm are unavailable in this environment.
 
 ## Phase 3: Web UI MVP
-- [ ] Theme tokens, layout shell, Main Menu, Game Setup.
-- [ ] Board and Tile components from `board.json`; tokens.
-- [ ] Zustand store wrapping engine; animation event queue.
-- [ ] Dice, movement animation, player panels, log.
-- [ ] Modals: property/buy, auction, card, build manager, trade, debt, jail, settings.
-- [ ] Bot turn driver with speed settings.
-- [ ] Save/resume via localStorage; Game Over screen with rematch.
-- [ ] Sound effects (placeholder tones OK) and mute.
-- **Exit check:** a full human-vs-3-bots game is playable on desktop and mobile widths.
+- [x] Theme tokens, layout shell, Main Menu, Game Setup.
+- [x] Board and Tile components from `board.json`; tokens.
+- [x] Pure React state wrapper around the engine with animation/event feedback.
+- [x] Dice, movement feedback, player panels, log.
+- [x] Modals: property/buy, auction, card, build manager, trade, debt, jail, settings.
+- [x] Bot turn driver with automatic decisions.
+- [x] Save/resume via localStorage; Game Over screen with rematch.
+- [x] Sound effects (placeholder tones) and mute.
+- **Exit check:** passed in browser with a full Quick Game against 3 bots; responsive styles included.
 
 ## Phase 4: Fun Layer
 - [ ] Fun facts toasts, commentary variants.

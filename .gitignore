@@ -10,4 +10,5 @@
 /node_modules/
 /coverage/
 /dist/
+**/dist/
 node_modules

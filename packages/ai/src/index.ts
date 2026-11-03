@@ -45,6 +45,8 @@ function chooseBuild(state: GameState, playerId: PlayerId, profile: BotProfile):
   if (!candidate) return null;
   const group = board.tiles.filter((tile) => tile.type === "property" && tile.colorGroup === candidate.tile.colorGroup);
   if (!group.every((tile) => state.properties[tile.index]?.ownerId === playerId)) return null;
+  const lowestHouses = Math.min(...group.map((tile) => state.properties[tile.index]?.houses ?? 0));
+  if (candidate.property.houses > lowestHouses) return null;
   return { type: "BUILD", tileIndex: candidate.property.tileIndex };
 }
 

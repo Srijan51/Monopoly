@@ -58,12 +58,12 @@ function App(): JSX.Element {
 
   const startGame = useCallback((settings: Partial<GameSettings>): void => {
     const players = [
-      { id: "player-1", name: "You", token: tokens[0], isBot: false },
-      { id: "bot-0", name: "Shark", token: tokens[1], isBot: true },
-      { id: "bot-1", name: "Banker", token: tokens[2], isBot: true },
-      { id: "bot-2", name: "Gambler", token: tokens[3], isBot: true }
+      { id: "player-1", name: "You", token: tokens[0]!, isBot: false },
+      { id: "bot-0", name: "Shark", token: tokens[1]!, isBot: true },
+      { id: "bot-1", name: "Banker", token: tokens[2]!, isBot: true },
+      { id: "bot-2", name: "Gambler", token: tokens[3]!, isBot: true }
     ];
-    setState(createGame(players, { ...freshSettings(), ...settings }));
+    setState(createGame(players, { ...freshSettings(), ...settings, maxRounds: settings.mode === "quick" ? 120 : null }));
     setScreen("game"); setModal(null); setEvents([]); setToast("");
   }, []);
 
@@ -145,13 +145,15 @@ function Board(props: { state: GameState }): JSX.Element {
 function ActionBar(props: { state: GameState; apply: (action: Action) => void }): JSX.Element {
   const human = props.state.currentPlayerId === "player-1";
   const disabled = !human;
-  return <nav className="action-bar"><div className="phase-label">{props.state.phase.replaceAll("_", " ")}</div>{props.state.phase === "ROLL" && <button className="button primary action-primary" disabled={disabled} onClick={() => props.apply({ type: "ROLL_DICE" })}>🎲 Roll dice</button>}{props.state.phase === "BUY_DECISION" && <><button className="button primary" disabled={disabled} onClick={() => props.apply({ type: "BUY_PROPERTY" })}>Buy {formatMoney(getTile(props.state.lastLandedTile ?? 0).price ?? 0)}</button><button className="button" disabled={disabled} onClick={() => props.apply({ type: "DECLINE_PROPERTY" })}>Auction</button></>}{props.state.phase === "POST_ROLL" && <button className="button primary action-primary" disabled={disabled} onClick={() => props.apply({ type: "END_TURN" })}>End turn →</button>}{props.state.phase === "JAIL_DECISION" && <><button className="button primary" disabled={disabled} onClick={() => props.apply({ type: "ROLL_DICE" })}>Roll for doubles</button><button className="button" disabled={disabled} onClick={() => props.apply({ type: "PAY_JAIL_FINE" })}>Pay $50</button></>}{props.state.phase === "DEBT" && <button className="button danger" disabled={disabled} onClick={() => props.apply({ type: "DECLARE_BANKRUPTCY" })}>Declare bankruptcy</button>}</nav>;
+  const humanPlayer = props.state.players.find((player) => player.id === "player-1");
+  const landedPrice = getTile(props.state.lastLandedTile ?? 0).price ?? 0;
+  return <nav className="action-bar"><div className="phase-label">{props.state.phase.replaceAll("_", " ")}</div>{props.state.phase === "ROLL" && <button className="button primary action-primary" disabled={disabled} onClick={() => props.apply({ type: "ROLL_DICE" })}>🎲 Roll dice</button>}{props.state.phase === "BUY_DECISION" && <><button className="button primary" disabled={disabled || (humanPlayer?.cash ?? 0) < landedPrice} onClick={() => props.apply({ type: "BUY_PROPERTY" })}>Buy {formatMoney(landedPrice)}</button><button className="button" disabled={disabled} onClick={() => props.apply({ type: "DECLINE_PROPERTY" })}>Auction</button></>}{props.state.phase === "POST_ROLL" && <button className="button primary action-primary" disabled={disabled} onClick={() => props.apply({ type: "END_TURN" })}>End turn →</button>}{props.state.phase === "JAIL_DECISION" && <><button className="button primary" disabled={disabled} onClick={() => props.apply({ type: "ROLL_DICE" })}>Roll for doubles</button><button className="button" disabled={disabled || (humanPlayer?.cash ?? 0) < 50} onClick={() => props.apply({ type: "PAY_JAIL_FINE" })}>Pay $50</button></>}{props.state.phase === "DEBT" && <button className="button danger" disabled={disabled} onClick={() => props.apply({ type: "DECLARE_BANKRUPTCY" })}>Declare bankruptcy</button>}</nav>;
 }
 
-function ModalView(props: { modal: Modal; state: GameState; events: GameEvent[]; card?: GameEvent; setModal: (modal: Modal) => void; apply: (action: Action) => void }): JSX.Element | null {
+function ModalView(props: { modal: Modal; state: GameState; events: GameEvent[]; card: GameEvent | undefined; setModal: (modal: Modal) => void; apply: (action: Action) => void }): JSX.Element | null {
   if (!props.modal) return null;
   const close = () => props.setModal(null);
-  if (props.modal === "property") { const tile = getTile(props.state.lastLandedTile ?? 0); return <Modal title={tile.name} close={close}><p className="modal-kicker">{tile.country ?? tile.type}</p><h2>{formatMoney(tile.price ?? 0)} to join the journey</h2><p>{tile.funFact ?? tile.flavor}</p>{tile.rent && <div className="rent-table">{tile.rent.map((rent, index) => <span key={index}>{index === 0 ? "Base" : index === 5 ? "Hotel" : `${index} house${index > 1 ? "s" : ""}`} <b>{formatMoney(rent)}</b></span>)}</div>}<div className="modal-actions"><button className="button primary" onClick={() => props.apply({ type: "BUY_PROPERTY" })}>Buy property</button><button className="button" onClick={() => props.apply({ type: "DECLINE_PROPERTY" })}>Pass to auction</button></div></Modal>; }
+  if (props.modal === "property") { const tile = getTile(props.state.lastLandedTile ?? 0); const player = props.state.players.find((item) => item.id === props.state.currentPlayerId); return <Modal title={tile.name} close={close}><p className="modal-kicker">{tile.country ?? tile.type}</p><h2>{formatMoney(tile.price ?? 0)} to join the journey</h2><p>{tile.funFact ?? tile.flavor}</p>{tile.rent && <div className="rent-table">{tile.rent.map((rent, index) => <span key={index}>{index === 0 ? "Base" : index === 5 ? "Hotel" : `${index} house${index > 1 ? "s" : ""}`} <b>{formatMoney(rent)}</b></span>)}</div>}<div className="modal-actions"><button className="button primary" disabled={(player?.cash ?? 0) < (tile.price ?? 0)} onClick={() => props.apply({ type: "BUY_PROPERTY" })}>Buy property</button><button className="button" onClick={() => props.apply({ type: "DECLINE_PROPERTY" })}>Pass to auction</button></div></Modal>; }
   if (props.modal === "card") return <Modal title="A travel surprise" close={close}><div className="card-art">✦</div><p>{props.card?.cardId ? "Your card effect has been applied. Keep traveling!" : "The deck is ready."}</p><button className="button primary" onClick={close}>Continue</button></Modal>;
   if (props.modal === "auction") return <Modal title="Open auction" close={close}><p>Bid on {tileName(props.state.pendingAuction?.tileIndex ?? 0)}.</p><h2>Current bid: {formatMoney(props.state.pendingAuction?.highestBid ?? 0)}</h2><div className="modal-actions"><button className="button primary" onClick={() => props.apply({ type: "AUCTION_BID", amount: (props.state.pendingAuction?.highestBid ?? 0) + 10 })}>Bid $10</button><button className="button" onClick={() => props.apply({ type: "AUCTION_PASS" })}>Pass</button></div></Modal>;
   if (props.modal === "jail") return <Modal title="Customs hold" close={close}><p>Roll doubles, pay $50, or use a Get Out of Jail Free card.</p><button className="button primary" onClick={() => props.apply({ type: "ROLL_DICE" })}>Roll</button></Modal>;
