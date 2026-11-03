@@ -1,0 +1,227 @@
+[
+  {
+    "deck": "chance",
+    "id": "ch01",
+    "text": "Advance to GO. Your passport is stamped! Collect $200.",
+    "effect": "moveTo",
+    "target": 0
+  },
+  {
+    "deck": "chance",
+    "id": "ch02",
+    "text": "Advance to Paris. The Eiffel Tower awaits. Pass GO, collect $200.",
+    "effect": "moveTo",
+    "target": 37
+  },
+  {
+    "deck": "chance",
+    "id": "ch03",
+    "text": "Advance to Rome. If you pass GO, collect $200.",
+    "effect": "moveTo",
+    "target": 21
+  },
+  {
+    "deck": "chance",
+    "id": "ch04",
+    "text": "Advance to Tokyo. If you pass GO, collect $200.",
+    "effect": "moveTo",
+    "target": 34
+  },
+  {
+    "deck": "chance",
+    "id": "ch05",
+    "text": "Take a ride on the Orient Express. If you pass GO, collect $200.",
+    "effect": "moveTo",
+    "target": 15
+  },
+  {
+    "deck": "chance",
+    "id": "ch06",
+    "text": "Advance to the nearest railway. Pay owner double rent, or buy it if unowned.",
+    "effect": "moveToNearest",
+    "kind": "railroad",
+    "rentMultiplier": 2
+  },
+  {
+    "deck": "chance",
+    "id": "ch07",
+    "text": "Advance to the nearest railway. Pay owner double rent, or buy it if unowned.",
+    "effect": "moveToNearest",
+    "kind": "railroad",
+    "rentMultiplier": 2
+  },
+  {
+    "deck": "chance",
+    "id": "ch08",
+    "text": "Advance to the nearest utility. If owned, pay 10x dice roll.",
+    "effect": "moveToNearest",
+    "kind": "utility",
+    "diceMultiplier": 10
+  },
+  {
+    "deck": "chance",
+    "id": "ch09",
+    "text": "Your travel blog went viral! Collect $50.",
+    "effect": "collect",
+    "amount": 50
+  },
+  {
+    "deck": "chance",
+    "id": "ch10",
+    "text": "Get Out of Jail Free. Keep this card until needed or sold.",
+    "effect": "getOutOfJailFree"
+  },
+  {
+    "deck": "chance",
+    "id": "ch11",
+    "text": "Go back 3 spaces. You took a wrong turn at the market.",
+    "effect": "moveRelative",
+    "steps": -3
+  },
+  {
+    "deck": "chance",
+    "id": "ch12",
+    "text": "Go directly to Jail. Customs found a suspicious llama.",
+    "effect": "goToJail"
+  },
+  {
+    "deck": "chance",
+    "id": "ch13",
+    "text": "Hotel maintenance: pay $25 per house and $100 per hotel.",
+    "effect": "repairs",
+    "house": 25,
+    "hotel": 100
+  },
+  {
+    "deck": "chance",
+    "id": "ch14",
+    "text": "Speeding ticket on a rented scooter. Pay $15.",
+    "effect": "pay",
+    "amount": 15
+  },
+  {
+    "deck": "chance",
+    "id": "ch15",
+    "text": "You are elected Tour Captain. Pay each player $50.",
+    "effect": "payEachPlayer",
+    "amount": 50
+  },
+  {
+    "deck": "chance",
+    "id": "ch16",
+    "text": "Your souvenir shop investment pays off. Collect $150.",
+    "effect": "collect",
+    "amount": 150
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc01",
+    "text": "Advance to GO. Collect $200.",
+    "effect": "moveTo",
+    "target": 0
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc02",
+    "text": "Bank error in your favor. Collect $200.",
+    "effect": "collect",
+    "amount": 200
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc03",
+    "text": "Doctor's fee after trying street food. Pay $50.",
+    "effect": "pay",
+    "amount": 50
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc04",
+    "text": "You sold a painting at a local art fair. Collect $50.",
+    "effect": "collect",
+    "amount": 50
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc05",
+    "text": "Get Out of Jail Free. Keep this card until needed or sold.",
+    "effect": "getOutOfJailFree"
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc06",
+    "text": "Go directly to Jail. You photographed a restricted area.",
+    "effect": "goToJail"
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc07",
+    "text": "Festival season! Collect $50 from every player.",
+    "effect": "collectFromEachPlayer",
+    "amount": 50
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc08",
+    "text": "Tax refund. Collect $20.",
+    "effect": "collect",
+    "amount": 20
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc09",
+    "text": "It's your birthday! Collect $10 from every player.",
+    "effect": "collectFromEachPlayer",
+    "amount": 10
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc10",
+    "text": "Travel insurance matures. Collect $100.",
+    "effect": "collect",
+    "amount": 100
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc11",
+    "text": "Hospital fees after a bungee jump. Pay $100.",
+    "effect": "pay",
+    "amount": 100
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc12",
+    "text": "Guide school fees. Pay $50.",
+    "effect": "pay",
+    "amount": 50
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc13",
+    "text": "Consulting fee for guiding tourists. Collect $25.",
+    "effect": "collect",
+    "amount": 25
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc14",
+    "text": "Street repairs: pay $40 per house and $115 per hotel.",
+    "effect": "repairs",
+    "house": 40,
+    "hotel": 115
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc15",
+    "text": "You won second prize in a cooking contest. Collect $10.",
+    "effect": "collect",
+    "amount": 10
+  },
+  {
+    "deck": "community_chest",
+    "id": "cc16",
+    "text": "You inherit $100 from a distant globe-trotting aunt.",
+    "effect": "collect",
+    "amount": 100
+  }
+]

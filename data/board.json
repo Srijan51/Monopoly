@@ -1,0 +1,578 @@
+{
+  "theme": "World Tour",
+  "startingCash": 1500,
+  "goSalary": 200,
+  "totalHouses": 32,
+  "totalHotels": 12,
+  "colorGroups": {
+    "brown": "#8B5A2B",
+    "light_blue": "#7EC8E3",
+    "pink": "#E75480",
+    "orange": "#F28C28",
+    "red": "#D62828",
+    "yellow": "#F9D423",
+    "green": "#2E9E5B",
+    "dark_blue": "#1D3FA6"
+  },
+  "tiles": [
+    {
+      "index": 0,
+      "type": "go",
+      "name": "GO",
+      "salary": 200,
+      "flavor": "Collect $200 for starting a new leg of your world tour!"
+    },
+    {
+      "index": 1,
+      "type": "property",
+      "name": "Hanoi Old Quarter",
+      "country": "Vietnam",
+      "colorGroup": "brown",
+      "price": 60,
+      "mortgage": 30,
+      "houseCost": 50,
+      "rent": [
+        2,
+        10,
+        30,
+        90,
+        160,
+        250
+      ],
+      "funFact": "Hanoi's Old Quarter has 36 streets, each historically named after the trade sold there."
+    },
+    {
+      "index": 2,
+      "type": "community_chest",
+      "name": "Community Chest"
+    },
+    {
+      "index": 3,
+      "type": "property",
+      "name": "Marrakech Souk",
+      "country": "Morocco",
+      "colorGroup": "brown",
+      "price": 60,
+      "mortgage": 30,
+      "houseCost": 50,
+      "rent": [
+        4,
+        20,
+        60,
+        180,
+        320,
+        450
+      ],
+      "funFact": "The souks of Marrakech form one of the largest traditional markets in Africa."
+    },
+    {
+      "index": 4,
+      "type": "tax",
+      "name": "Travel Tax",
+      "amount": 200,
+      "flavor": "Visas, snacks and a suspicious 'tourist fee'. Pay $200."
+    },
+    {
+      "index": 5,
+      "type": "railroad",
+      "name": "Trans-Siberian Railway",
+      "price": 200,
+      "mortgage": 100,
+      "rent": [
+        25,
+        50,
+        100,
+        200
+      ],
+      "funFact": "The Trans-Siberian crosses 8 time zones."
+    },
+    {
+      "index": 6,
+      "type": "property",
+      "name": "Lisbon",
+      "country": "Portugal",
+      "colorGroup": "light_blue",
+      "price": 100,
+      "mortgage": 50,
+      "houseCost": 50,
+      "rent": [
+        6,
+        30,
+        90,
+        270,
+        400,
+        550
+      ],
+      "funFact": "Lisbon's yellow trams climb some of Europe's steepest city streets."
+    },
+    {
+      "index": 7,
+      "type": "chance",
+      "name": "Chance"
+    },
+    {
+      "index": 8,
+      "type": "property",
+      "name": "Prague",
+      "country": "Czechia",
+      "colorGroup": "light_blue",
+      "price": 100,
+      "mortgage": 50,
+      "houseCost": 50,
+      "rent": [
+        6,
+        30,
+        90,
+        270,
+        400,
+        550
+      ],
+      "funFact": "Prague's astronomical clock has been ticking since 1410."
+    },
+    {
+      "index": 9,
+      "type": "property",
+      "name": "Istanbul Bazaar",
+      "country": "Turkey",
+      "colorGroup": "light_blue",
+      "price": 120,
+      "mortgage": 60,
+      "houseCost": 50,
+      "rent": [
+        8,
+        40,
+        100,
+        300,
+        450,
+        600
+      ],
+      "funFact": "Istanbul straddles two continents, Europe and Asia."
+    },
+    {
+      "index": 10,
+      "type": "jail",
+      "name": "Jail / Just Visiting",
+      "flavor": "Just visiting... or serving time for smuggling too many souvenirs."
+    },
+    {
+      "index": 11,
+      "type": "property",
+      "name": "Rio de Janeiro",
+      "country": "Brazil",
+      "colorGroup": "pink",
+      "price": 140,
+      "mortgage": 70,
+      "houseCost": 100,
+      "rent": [
+        10,
+        50,
+        150,
+        450,
+        625,
+        750
+      ],
+      "funFact": "Rio's Carnival is often called the biggest party on Earth."
+    },
+    {
+      "index": 12,
+      "type": "utility",
+      "name": "Solar Farm",
+      "price": 150,
+      "mortgage": 75,
+      "funFact": "Rent is 4x dice roll (10x if you own both utilities)."
+    },
+    {
+      "index": 13,
+      "type": "property",
+      "name": "Cape Town",
+      "country": "South Africa",
+      "colorGroup": "pink",
+      "price": 140,
+      "mortgage": 70,
+      "houseCost": 100,
+      "rent": [
+        10,
+        50,
+        150,
+        450,
+        625,
+        750
+      ],
+      "funFact": "Table Mountain is one of the oldest mountains on Earth."
+    },
+    {
+      "index": 14,
+      "type": "property",
+      "name": "Buenos Aires",
+      "country": "Argentina",
+      "colorGroup": "pink",
+      "price": 160,
+      "mortgage": 80,
+      "houseCost": 100,
+      "rent": [
+        12,
+        60,
+        180,
+        500,
+        700,
+        900
+      ],
+      "funFact": "Buenos Aires is the birthplace of the tango."
+    },
+    {
+      "index": 15,
+      "type": "railroad",
+      "name": "Orient Express",
+      "price": 200,
+      "mortgage": 100,
+      "rent": [
+        25,
+        50,
+        100,
+        200
+      ],
+      "funFact": "The Orient Express inspired countless novels and films."
+    },
+    {
+      "index": 16,
+      "type": "property",
+      "name": "Bangkok",
+      "country": "Thailand",
+      "colorGroup": "orange",
+      "price": 180,
+      "mortgage": 90,
+      "houseCost": 100,
+      "rent": [
+        14,
+        70,
+        200,
+        550,
+        750,
+        950
+      ],
+      "funFact": "Bangkok's full ceremonial name is among the longest city names in the world."
+    },
+    {
+      "index": 17,
+      "type": "community_chest",
+      "name": "Community Chest"
+    },
+    {
+      "index": 18,
+      "type": "property",
+      "name": "Jaipur",
+      "country": "India",
+      "colorGroup": "orange",
+      "price": 180,
+      "mortgage": 90,
+      "houseCost": 100,
+      "rent": [
+        14,
+        70,
+        200,
+        550,
+        750,
+        950
+      ],
+      "funFact": "Jaipur is known as the Pink City for its terracotta-pink buildings."
+    },
+    {
+      "index": 19,
+      "type": "property",
+      "name": "Kyoto",
+      "country": "Japan",
+      "colorGroup": "orange",
+      "price": 200,
+      "mortgage": 100,
+      "houseCost": 100,
+      "rent": [
+        16,
+        80,
+        220,
+        600,
+        800,
+        1000
+      ],
+      "funFact": "Kyoto was Japan's capital for over a thousand years."
+    },
+    {
+      "index": 20,
+      "type": "free_parking",
+      "name": "Free Parking",
+      "flavor": "Rest at a beach resort. (Optional house rule: collect the jackpot!)"
+    },
+    {
+      "index": 21,
+      "type": "property",
+      "name": "Rome",
+      "country": "Italy",
+      "colorGroup": "red",
+      "price": 220,
+      "mortgage": 110,
+      "houseCost": 150,
+      "rent": [
+        18,
+        90,
+        250,
+        700,
+        875,
+        1050
+      ],
+      "funFact": "All roads lead to Rome, the Eternal City."
+    },
+    {
+      "index": 22,
+      "type": "chance",
+      "name": "Chance"
+    },
+    {
+      "index": 23,
+      "type": "property",
+      "name": "Athens",
+      "country": "Greece",
+      "colorGroup": "red",
+      "price": 220,
+      "mortgage": 110,
+      "houseCost": 150,
+      "rent": [
+        18,
+        90,
+        250,
+        700,
+        875,
+        1050
+      ],
+      "funFact": "Athens is one of the oldest cities in the world."
+    },
+    {
+      "index": 24,
+      "type": "property",
+      "name": "Cairo",
+      "country": "Egypt",
+      "colorGroup": "red",
+      "price": 240,
+      "mortgage": 120,
+      "houseCost": 150,
+      "rent": [
+        20,
+        100,
+        300,
+        750,
+        925,
+        1100
+      ],
+      "funFact": "Cairo sits near the Great Pyramids of Giza."
+    },
+    {
+      "index": 25,
+      "type": "railroad",
+      "name": "Shinkansen Bullet Train",
+      "price": 200,
+      "mortgage": 100,
+      "rent": [
+        25,
+        50,
+        100,
+        200
+      ],
+      "funFact": "The first Shinkansen opened in 1964 for the Tokyo Olympics."
+    },
+    {
+      "index": 26,
+      "type": "property",
+      "name": "London",
+      "country": "United Kingdom",
+      "colorGroup": "yellow",
+      "price": 260,
+      "mortgage": 130,
+      "houseCost": 150,
+      "rent": [
+        22,
+        110,
+        330,
+        800,
+        975,
+        1150
+      ],
+      "funFact": "London's Underground is the oldest metro system in the world."
+    },
+    {
+      "index": 27,
+      "type": "property",
+      "name": "Barcelona",
+      "country": "Spain",
+      "colorGroup": "yellow",
+      "price": 260,
+      "mortgage": 130,
+      "houseCost": 150,
+      "rent": [
+        22,
+        110,
+        330,
+        800,
+        975,
+        1150
+      ],
+      "funFact": "Gaudi's Sagrada Familia has been under construction since 1882."
+    },
+    {
+      "index": 28,
+      "type": "utility",
+      "name": "Aqua Plant",
+      "price": 150,
+      "mortgage": 75,
+      "funFact": "Rent is 4x dice roll (10x if you own both utilities)."
+    },
+    {
+      "index": 29,
+      "type": "property",
+      "name": "Sydney",
+      "country": "Australia",
+      "colorGroup": "yellow",
+      "price": 280,
+      "mortgage": 140,
+      "houseCost": 150,
+      "rent": [
+        24,
+        120,
+        360,
+        850,
+        1025,
+        1200
+      ],
+      "funFact": "Sydney Opera House's roof is covered by over a million tiles."
+    },
+    {
+      "index": 30,
+      "type": "go_to_jail",
+      "name": "Go To Jail",
+      "flavor": "Customs found your llama. Go directly to Jail!"
+    },
+    {
+      "index": 31,
+      "type": "property",
+      "name": "Singapore",
+      "country": "Singapore",
+      "colorGroup": "green",
+      "price": 300,
+      "mortgage": 150,
+      "houseCost": 200,
+      "rent": [
+        26,
+        130,
+        390,
+        900,
+        1100,
+        1275
+      ],
+      "funFact": "Singapore is a city, island and country all at once."
+    },
+    {
+      "index": 32,
+      "type": "property",
+      "name": "Dubai",
+      "country": "UAE",
+      "colorGroup": "green",
+      "price": 300,
+      "mortgage": 150,
+      "houseCost": 200,
+      "rent": [
+        26,
+        130,
+        390,
+        900,
+        1100,
+        1275
+      ],
+      "funFact": "Dubai is home to the Burj Khalifa, the tallest building in the world."
+    },
+    {
+      "index": 33,
+      "type": "community_chest",
+      "name": "Community Chest"
+    },
+    {
+      "index": 34,
+      "type": "property",
+      "name": "Tokyo",
+      "country": "Japan",
+      "colorGroup": "green",
+      "price": 320,
+      "mortgage": 160,
+      "houseCost": 200,
+      "rent": [
+        28,
+        150,
+        450,
+        1000,
+        1200,
+        1400
+      ],
+      "funFact": "Tokyo's Shibuya Crossing can see thousands of people cross at once."
+    },
+    {
+      "index": 35,
+      "type": "railroad",
+      "name": "Darjeeling Himalayan Railway",
+      "price": 200,
+      "mortgage": 100,
+      "rent": [
+        25,
+        50,
+        100,
+        200
+      ],
+      "funFact": "Nicknamed the Toy Train, it is a UNESCO World Heritage Site."
+    },
+    {
+      "index": 36,
+      "type": "chance",
+      "name": "Chance"
+    },
+    {
+      "index": 37,
+      "type": "property",
+      "name": "Paris",
+      "country": "France",
+      "colorGroup": "dark_blue",
+      "price": 350,
+      "mortgage": 175,
+      "houseCost": 200,
+      "rent": [
+        35,
+        175,
+        500,
+        1100,
+        1300,
+        1500
+      ],
+      "funFact": "The Eiffel Tower was meant to be temporary, built for the 1889 World's Fair."
+    },
+    {
+      "index": 38,
+      "type": "tax",
+      "name": "Luxury Tax",
+      "amount": 100,
+      "flavor": "Too many designer souvenirs. Pay $100."
+    },
+    {
+      "index": 39,
+      "type": "property",
+      "name": "New York City",
+      "country": "USA",
+      "colorGroup": "dark_blue",
+      "price": 400,
+      "mortgage": 200,
+      "houseCost": 200,
+      "rent": [
+        50,
+        200,
+        600,
+        1400,
+        1700,
+        2000
+      ],
+      "funFact": "NYC's subway runs 24/7, one of very few systems in the world to do so."
+    }
+  ]
+}
