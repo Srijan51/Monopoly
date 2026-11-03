@@ -203,7 +203,7 @@ export function reduce(input: GameState, action: Action): ReduceResult {
       if (!property || tile.type !== "property" || property.ownerId !== player.id || property.mortgaged) throw new Error("Cannot build here");
       const group = board.tiles.filter((item) => item.colorGroup === tile.colorGroup && item.type === "property");
       if (!group.every((item) => state.properties[item.index]?.ownerId === player.id) || property.houses >= 5 || player.cash < (tile.houseCost ?? 0)) throw new Error("Building requirements not met");
-      if (group.some((item) => property.houses > (state.properties[item.index]?.houses ?? 0) + 1)) throw new Error("Buildings must be even");
+      if (group.some((item) => property.houses > (state.properties[item.index]?.houses ?? 0))) throw new Error("Buildings must be even");
       if (property.houses === 4 && state.hotelSupply < 1) throw new Error("No hotels available");
       if (property.houses < 4 && state.houseSupply < 1) throw new Error("No houses available");
       player.cash -= tile.houseCost ?? 0; if (property.houses === 4) { state.hotelSupply -= 1; state.houseSupply += 4; } else state.houseSupply -= 1; property.houses += 1; events.push(event("BUILT", { tileIndex: action.tileIndex })); break;

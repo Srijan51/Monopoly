@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "sim": "tsx packages/ai/src/sim.ts",
-    "build": "pnpm --filter @mwt/engine build && pnpm --filter @mwt/web build"
+    "build": "pnpm --filter @mwt/engine build && pnpm --filter @mwt/server build && pnpm --filter @mwt/web build"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

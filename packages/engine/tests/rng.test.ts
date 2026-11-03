@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextRandom, shuffle } from "../src/index.js";
+import { nextRandom, shuffle } from "@mwt/engine";
 
 describe("seeded RNG", () => {
   it("is deterministic and does not use ambient randomness", () => {
