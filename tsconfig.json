@@ -1,15 +1,17 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": { "@mwt/engine": ["packages/engine/src/index.ts"], "@mwt/ai": ["packages/ai/src/index.ts"] }
   },
   "include": ["packages", "apps"]
 }

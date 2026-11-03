@@ -1,1 +1,9 @@
-{ "name": "@mwt/ai", "version": "0.1.0", "type": "module", "private": true }
+{
+  "name": "@mwt/ai",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": { "@mwt/engine": "workspace:*" }
+}

@@ -7,3 +7,7 @@
 /UI_UX_SPEC.md
 /board.json
 /cards.json
+/node_modules/
+/coverage/
+/dist/
+node_modules

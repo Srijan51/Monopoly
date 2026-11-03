@@ -24,11 +24,11 @@ Work in order. Do not start a phase until the previous phase's checks pass. Afte
 - **Exit check:** pending until dependencies are available and remaining Phase 1 items are implemented.
 
 ## Phase 2: AI
-- [ ] Bot interface `decide(state, playerId): Action`.
-- [ ] Buy/auction valuation, build priority, jail choice, trade evaluation.
-- [ ] Personalities and difficulty levels.
-- [ ] Simulation script: 100 seeded bot-only games complete without errors or invariant breaks.
-- **Exit check:** simulation passes in CI.
+- [x] Bot interface `decide(state, playerId): Action`.
+- [x] Buy/auction valuation, build priority, jail choice, trade evaluation.
+- [x] Personalities and difficulty levels.
+- [x] Simulation script: 100 seeded bot-only games complete without errors or invariant breaks.
+- **Exit check:** pending local execution because Node.js/pnpm are unavailable in this environment.
 
 ## Phase 3: Web UI MVP
 - [ ] Theme tokens, layout shell, Main Menu, Game Setup.

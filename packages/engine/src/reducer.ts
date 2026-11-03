@@ -1,6 +1,6 @@
 import { board, cards, getCard, getTile } from "./data.js";
 import { randomInt, shuffle } from "./rng.js";
-import type { Action, GameEvent, GameSettings, GameState, NewPlayer, Player, PropertyState, ReduceResult } from "./types.js";
+import type { Action, Auction, GameEvent, GameSettings, GameState, NewPlayer, Player, PropertyState, ReduceResult } from "./types.js";
 
 const jail = 10;
 const go = 0;
@@ -15,7 +15,6 @@ const activePlayer = (state: GameState): Player => {
   if (!player) throw new Error(`Unknown current player: ${state.currentPlayerId}`);
   return player;
 };
-const addLog = (state: GameState, message: string): void => state.log.push({ message, round: state.round });
 const event = (type: string, values: Record<string, unknown> = {}): GameEvent => ({ type, ...values });
 const money = (player: Player, amount: number): void => { player.cash += amount; };
 const propertyTiles = (): number[] => board.tiles.filter((tile) => tile.type === "property" || tile.type === "railroad" || tile.type === "utility").map((tile) => tile.index);
@@ -32,6 +31,16 @@ function passGo(player: Player, state: GameState, events: GameEvent[], exactGo: 
     events.push(event("PASSED_GO", { playerId: player.id, amount: state.settings.goSalary }));
   }
 }
+function nextAuctionPlayer(state: GameState, auction: Auction): void {
+  const index = state.players.findIndex((item) => item.id === state.currentPlayerId);
+  for (let offset = 1; offset <= state.players.length; offset += 1) {
+    const candidate = state.players[(index + offset) % state.players.length];
+    if (candidate && !candidate.bankrupt && !auction.passed.includes(candidate.id)) {
+      state.currentPlayerId = candidate.id;
+      return;
+    }
+  }
+}
 function movePlayer(state: GameState, player: Player, steps: number, events: GameEvent[]): void {
   const from = player.position;
   const target = ((from + steps) % 40 + 40) % 40;
@@ -45,7 +54,10 @@ function propertyRent(state: GameState, tileIndex: number, diceTotal: number, mu
   if (!property || property.mortgaged || !property.ownerId) return 0;
   if (tile.type === "property") {
     const sameGroup = board.tiles.filter((item) => item.colorGroup === tile.colorGroup && item.type === "property");
-    const ownsGroup = sameGroup.every((item) => state.properties[item.index]?.ownerId === property.ownerId);
+    const ownsGroup = sameGroup.every((item) => {
+      const groupProperty = state.properties[item.index];
+      return groupProperty?.ownerId === property.ownerId && !groupProperty.mortgaged;
+    });
     return (tile.rent?.[property.houses] ?? 0) * (property.houses === 0 && ownsGroup ? 2 : 1) * multiplier;
   }
   if (tile.type === "railroad") {
@@ -84,7 +96,13 @@ function resolveLanding(state: GameState, player: Player, events: GameEvent[], r
   } else if (tile.type === "chance" || tile.type === "community_chest") {
     const key = tile.type === "chance" ? "chance" : "chest";
     const deck = state[key === "chance" ? "chanceDeck" : "chestDeck"];
-    const id = deck.shift();
+    const id = deck.shift() ?? (() => {
+      const reshuffled = shuffle(state.discard[key], state.rngState);
+      state.rngState = reshuffled.state;
+      state.discard[key] = [];
+      deck.push(...reshuffled.values);
+      return deck.shift();
+    })();
     if (!id) throw new Error(`Empty ${key} deck`);
     state.discard[key].push(id);
     const card = getCard(id);
@@ -123,9 +141,9 @@ function endTurn(state: GameState): void {
 }
 function checkWin(state: GameState): void {
   const alive = state.players.filter((player) => !player.bankrupt);
-  const quick = state.settings.mode === "quick" && alive.find((player) => player.cash + Object.values(state.properties).filter((property) => property.ownerId === player.id).reduce((sum, property) => sum + (getTile(property.tileIndex).price ?? 0), 0) >= state.settings.quickTargetNetWorth);
-  if (alive.length === 1 || quick || (state.settings.maxRounds !== null && state.round >= state.settings.maxRounds)) {
-    state.winnerId = (quick ?? alive[0])?.id ?? alive.sort((a, b) => b.cash - a.cash)[0]?.id ?? null;
+  const quickWinner = state.settings.mode === "quick" ? alive.find((candidate) => candidate.cash + Object.values(state.properties).filter((property) => property.ownerId === candidate.id).reduce((sum, property) => sum + (getTile(property.tileIndex).price ?? 0), 0) >= state.settings.quickTargetNetWorth) : undefined;
+  if (alive.length === 1 || quickWinner || (state.settings.maxRounds !== null && state.round >= state.settings.maxRounds)) {
+    state.winnerId = quickWinner?.id ?? alive[0]?.id ?? alive.sort((a, b) => b.cash - a.cash)[0]?.id ?? null;
     state.phase = "GAME_OVER";
   }
 }
@@ -146,8 +164,17 @@ export function reduce(input: GameState, action: Action): ReduceResult {
   switch (action.type) {
     case "ROLL_DICE": {
       if (state.phase !== "ROLL" && state.phase !== "JAIL_DECISION") throw new Error("Cannot roll now");
-      const dice = action.dice ?? [randomInt(state.rngState, 6).value + 1, randomInt(state.rngState + 1, 6).value + 1] as [number, number];
-      state.dice = dice; state.rngState += 2; events.push(event("DICE_ROLLED", { dice }));
+      let dice: [number, number];
+      if (action.dice) {
+        dice = action.dice;
+      } else {
+        const first = randomInt(state.rngState, 6);
+        const second = randomInt(first.state, 6);
+        dice = [first.value + 1, second.value + 1];
+        state.rngState = second.state;
+      }
+      state.dice = dice;
+      events.push(event("DICE_ROLLED", { dice }));
       if (state.phase === "JAIL_DECISION") {
         if (dice[0] === dice[1]) { player.inJail = false; player.jailTurns = 0; movePlayer(state, player, dice[0] + dice[1], events); resolveLanding(state, player, events); }
         else { player.jailTurns += 1; if (player.jailTurns >= 3) { charge(state, player, 50, undefined, events); player.inJail = false; player.jailTurns = 0; state.phase = "ROLL"; } else state.phase = "JAIL_DECISION"; }
@@ -156,7 +183,7 @@ export function reduce(input: GameState, action: Action): ReduceResult {
       if (dice[0] === dice[1]) player.consecutiveDoubles += 1; else player.consecutiveDoubles = 0;
       if (player.consecutiveDoubles >= 3) { player.position = jail; player.inJail = true; player.consecutiveDoubles = 0; state.phase = "POST_ROLL"; events.push(event("SENT_TO_JAIL", { playerId: player.id })); break; }
       movePlayer(state, player, dice[0] + dice[1], events); resolveLanding(state, player, events);
-      if (dice[0] === dice[1] && state.phase === "POST_ROLL") state.phase = "ROLL";
+      if (dice[0] === dice[1] && (state.phase as string) === "POST_ROLL") state.phase = "ROLL";
       break;
     }
     case "BUY_PROPERTY": {
@@ -200,18 +227,23 @@ export function reduce(input: GameState, action: Action): ReduceResult {
     }
     case "AUCTION_BID": {
       const auction = state.pendingAuction; if (state.phase !== "AUCTION" || !auction || action.amount <= auction.highestBid || action.amount > player.cash) throw new Error("Invalid auction bid");
-      auction.highestBid = action.amount; auction.highestBidderId = player.id; break;
+      auction.highestBid = action.amount; auction.highestBidderId = player.id; nextAuctionPlayer(state, auction); break;
     }
     case "AUCTION_PASS": {
       const auction = state.pendingAuction; if (state.phase !== "AUCTION" || !auction) throw new Error("No auction");
       if (!auction.passed.includes(player.id)) auction.passed.push(player.id);
       if (auction.passed.length >= state.players.filter((item) => !item.bankrupt).length - 1 && auction.highestBidderId) {
         const winner = state.players.find((item) => item.id === auction.highestBidderId)!; winner.cash -= auction.highestBid; state.properties[auction.tileIndex]!.ownerId = winner.id; state.pendingAuction = null; state.phase = "POST_ROLL"; events.push(event("PROPERTY_BOUGHT", { playerId: winner.id, tileIndex: auction.tileIndex }));
-      } break;
+      } else if (auction.passed.length >= state.players.filter((item) => !item.bankrupt).length) {
+        state.pendingAuction = null; state.phase = "POST_ROLL";
+      } else {
+        nextAuctionPlayer(state, auction);
+      }
+      break;
     }
     case "DECLARE_BANKRUPTCY": {
       if (state.phase !== "DEBT" || player.cash >= 0) throw new Error("Bankruptcy is not available");
-      player.bankrupt = true; for (const property of Object.values(state.properties)) if (property.ownerId === player.id) property.ownerId = null; events.push(event("PLAYER_BANKRUPT", { playerId: player.id })); checkWin(state); if (state.phase !== "GAME_OVER") endTurn(state); break;
+      player.bankrupt = true; for (const property of Object.values(state.properties)) if (property.ownerId === player.id) property.ownerId = null; events.push(event("PLAYER_BANKRUPT", { playerId: player.id })); checkWin(state); if ((state.phase as string) !== "GAME_OVER") endTurn(state); break;
     }
     case "PROPOSE_TRADE": {
       if (state.phase !== "POST_ROLL" || action.toPlayerId === player.id || action.cash < 0 || !Number.isInteger(action.cash)) throw new Error("Invalid trade offer");
@@ -239,7 +271,7 @@ export function reduce(input: GameState, action: Action): ReduceResult {
       const offer = state.pendingTrade;
       state.pendingTrade = null; state.currentPlayerId = offer.fromPlayerId; events.push(event("TRADE_DECLINED", { playerId: player.id })); break;
     }
-    case "END_TURN": if (state.phase !== "POST_ROLL") throw new Error("Cannot end turn now"); player.consecutiveDoubles = 0; endTurn(state); break;
+    case "END_TURN": if (state.phase !== "POST_ROLL" && !(state.phase === "DEBT" && player.cash >= 0)) throw new Error("Cannot end turn now"); player.consecutiveDoubles = 0; endTurn(state); break;
   }
   checkWin(state);
   return { state, events };

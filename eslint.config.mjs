@@ -2,7 +2,7 @@ import tseslint from "@typescript-eslint/eslint-plugin";
 import parser from "@typescript-eslint/parser";
 
 export default [
-  { ignores: ["node_modules/**", "coverage/**", "dist/**"] },
+  { ignores: ["node_modules/**", "coverage/**", "dist/**", "**/dist/**"] },
   {
     files: ["**/*.ts"],
     languageOptions: { parser },

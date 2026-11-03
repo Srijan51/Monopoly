@@ -8,7 +8,10 @@ const tileSchema = z.object({
   salary: z.number().int().nonnegative().optional(), amount: z.number().int().nonnegative().optional(),
   country: z.string().optional(), colorGroup: z.string().optional(), price: z.number().int().positive().optional(),
   mortgage: z.number().int().nonnegative().optional(), houseCost: z.number().int().positive().optional(),
-  rent: z.array(z.number().int().nonnegative()).length(6).optional(), funFact: z.string().optional(), flavor: z.string().optional()
+  rent: z.union([
+    z.array(z.number().int().nonnegative()).length(4),
+    z.array(z.number().int().nonnegative()).length(6)
+  ]).optional(), funFact: z.string().optional(), flavor: z.string().optional()
 });
 const cardSchema = z.object({
   deck: z.enum(["chance", "community_chest"]), id: z.string(), text: z.string(), effect: z.string(),

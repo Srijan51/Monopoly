@@ -32,9 +32,10 @@ describe("game lifecycle", () => {
   });
 
   it("handles triple doubles by sending the player to jail", () => {
-    let state = createGame(players);
+    let state = createGame(players, { auctionOnDecline: false });
     state = roll(state, [2, 2]);
     state = roll(state, [2, 2]);
+    state = reduce(state, { type: "DECLINE_PROPERTY" }).state;
     state = roll(state, [2, 2]);
     expect(state.players[0]?.inJail).toBe(true);
     expect(state.players[0]?.position).toBe(10);
@@ -46,14 +47,14 @@ describe("game lifecycle", () => {
     state = reduce(state, { type: "BUY_PROPERTY" }).state;
     state = reduce(state, { type: "END_TURN" }).state;
     state = roll(state, [1, 2]);
-    expect(state.players[0]?.cash).toBe(1504);
+    expect(state.players[0]?.cash).toBe(1444);
   });
 
   it("supports taxes, jail decisions, building, mortgage and unmortgage", () => {
     let state = createGame(players);
-    state = roll(state, [2, 2]);
+    state = roll(state, [1, 2]);
     state = reduce(state, { type: "BUY_PROPERTY" }).state;
-    state = reduce(state, { type: "MORTGAGE", tileIndex: 4 }).state;
+    state = reduce(state, { type: "MORTGAGE", tileIndex: 3 }).state;
     expect(() => reduce(state, { type: "MORTGAGE", tileIndex: 3 })).toThrow();
     state = { ...state, currentPlayerId: "p2", phase: "ROLL" };
     state = roll(state, [2, 2]);
@@ -62,7 +63,7 @@ describe("game lifecycle", () => {
 
   it("draws cards and applies direct effects", () => {
     let state = createGame(players, { seed: 7 });
-    state = { ...state, players: state.players.map((player) => ({ ...player, position: 2 })), currentPlayerId: "p1" };
+    state = { ...state, currentPlayerId: "p1" };
     const result = reduce(state, { type: "ROLL_DICE", dice: [1, 1] });
     expect(result.events.some((item) => item.type === "CARD_DRAWN")).toBe(true);
   });
