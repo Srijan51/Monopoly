@@ -3,6 +3,8 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "dev": "pnpm --filter @mwt/web dev",
+    "dev:server": "pnpm --filter @mwt/server dev",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",

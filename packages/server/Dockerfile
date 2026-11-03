@@ -10,5 +10,4 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm --filter @mwt/engine build
 RUN pnpm --filter @mwt/server build
 EXPOSE 3001
-CMD ["node", "packages/server/dist/index.js"]
-
+CMD ["pnpm", "--filter", "@mwt/server", "start"]

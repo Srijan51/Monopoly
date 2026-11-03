@@ -3,11 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "tsc --noEmit",
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "@mwt/ai": "workspace:*",
@@ -26,4 +25,3 @@
     "typescript": "^5.7.2"
   }
 }
-

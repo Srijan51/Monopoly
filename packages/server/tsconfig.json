@@ -1,7 +1,4 @@
 {
   "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "dist"
-  },
-  "include": ["src", "../../packages/engine/src", "../../packages/ai/src"]
+  "include": ["src"]
 }

@@ -4,7 +4,7 @@ import { Server as IOServer } from "socket.io";
 import { createServer } from "http";
 import { randomUUID } from "crypto";
 import { createGame, reduce, getLegalActions } from "@mwt/engine";
-import type { Action, GameEvent, GameSettings, GameState } from "@mwt/engine";
+import type { Action, GameSettings, GameState } from "@mwt/engine";
 import { decide, profiles } from "@mwt/ai";
 import type { BotProfile } from "@mwt/ai";
 
