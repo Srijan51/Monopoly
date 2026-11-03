@@ -25,22 +25,75 @@ const PIP_LAYOUTS: Record<number, boolean[]> = {
   6: [true, true, false, true, false, true, false, true, true],
 };
 
-// ─── Die component ────────────────────────────────────────
-function Die({ value, rolling }: { value: number | null; rolling: boolean }) {
-  const pips = value ? PIP_LAYOUTS[value] ?? [] : [];
+// ─── Player colors palette ────────────────────────────────
+const PLAYER_COLORS = ["#ff6b35", "#2ec4b6", "#9b5de5", "#e9c46a", "#e75480", "#2e9e5b"] as const;
+
+// ─── Die component with active 3D tumble & rapid face scramble ───
+function Die({ value, rolling, dieIndex = 0 }: { value: number | null; rolling: boolean; dieIndex?: number }) {
+  const [scrambleVal, setScrambleVal] = useState<number>(value ?? 1);
+  const [justLanded, setJustLanded] = useState(false);
+  const prevRolling = useRef(rolling);
+
+  useEffect(() => {
+    if (rolling) {
+      const interval = setInterval(() => {
+        setScrambleVal(Math.floor(Math.random() * 6) + 1);
+      }, 60);
+      return () => clearInterval(interval);
+    } else {
+      if (prevRolling.current && !rolling) {
+        setJustLanded(true);
+        const timer = setTimeout(() => setJustLanded(false), 700);
+        return () => clearTimeout(timer);
+      }
+      if (value) setScrambleVal(value);
+    }
+    prevRolling.current = rolling;
+  }, [rolling, value]);
+
+  const displayVal = rolling ? scrambleVal : (value ?? scrambleVal);
+  const pips = PIP_LAYOUTS[displayVal] ?? PIP_LAYOUTS[1]!;
+
   return (
-    <div className="die-wrap">
-      <div className={`die ${rolling ? "rolling" : ""}`} aria-label={value ? `Die showing ${value}` : "Die"}>
-        {value ? (
-          <div className="die-pip-grid">
-            {pips.map((active, i) => (
-              <div key={i} className={`die-pip ${active ? "" : "hidden"}`} />
-            ))}
-          </div>
-        ) : (
-          <span style={{ color: "var(--muted)", fontSize: "120%" }}>?</span>
-        )}
+    <div className={`die-wrap die-wrap-${dieIndex} ${rolling ? "is-rolling" : ""} ${justLanded ? "just-landed" : ""}`}>
+      <div
+        className={`die die-${dieIndex} ${rolling ? "rolling" : ""} ${justLanded ? "landed-bounce" : ""}`}
+        aria-label={`Die showing ${displayVal}`}
+      >
+        <div className="die-pip-grid">
+          {pips.map((active, i) => (
+            <div key={i} className={`die-pip ${active ? "" : "hidden"}`} />
+          ))}
+        </div>
       </div>
+      <div className={`die-shadow ${rolling ? "rolling-shadow" : ""}`} />
+    </div>
+  );
+}
+
+// ─── Player Piece component (Visible 3D Token Pawn) ───────
+function PlayerPiece({
+  player,
+  playerIndex,
+  isCurrentTurn,
+  isJustMoved,
+}: {
+  player: Player;
+  playerIndex: number;
+  isCurrentTurn: boolean;
+  isJustMoved: boolean;
+}) {
+  const color = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length];
+  return (
+    <div
+      className={`player-piece ${isCurrentTurn ? "is-turn" : ""} ${isJustMoved ? "is-hopping" : ""}`}
+      style={{ "--player-color": color } as React.CSSProperties}
+      title={`${player.name}${isCurrentTurn ? " (Current Turn)" : ""}${player.inJail ? " · In Jail" : ""}`}
+      aria-label={`${player.name}'s piece: ${player.token ?? "🎮"}`}
+    >
+      <span className="player-piece-emoji">{player.token ?? "🎮"}</span>
+      {isCurrentTurn && <span className="turn-indicator-badge">★</span>}
+      {isCurrentTurn && <div className="turn-glow-ring" />}
     </div>
   );
 }
@@ -97,6 +150,21 @@ function App(): JSX.Element {
 
   const audioCtx = useRef<AudioContext | null>(null);
   const prevCash = useRef<Record<string, number>>({});
+  const prevPositions = useRef<Record<string, number>>({});
+  const [lastMovedPlayerId, setLastMovedPlayerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!state) return;
+    for (const p of state.players) {
+      const prev = prevPositions.current[p.id];
+      if (prev !== undefined && prev !== p.position) {
+        setLastMovedPlayerId(p.id);
+        const timer = setTimeout(() => setLastMovedPlayerId(null), 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+    prevPositions.current = Object.fromEntries(state.players.map(p => [p.id, p.position]));
+  }, [state]);
 
   // ─── Audio ─────────────────────────────────────────────
   const playTone = useCallback((freq: number, duration = 0.1, type: OscillatorType = "sine") => {
@@ -177,15 +245,16 @@ function App(): JSX.Element {
     setState(newState);
     setEvents(newEvents);
 
-    const card = newEvents.find(e => e.type === "CARD_DRAWN");
+    const isHumanTurn = newState.currentPlayerId === (isMultiplayer ? myPlayerId : "player-1");
+    const card = isHumanTurn ? newEvents.find(e => e.type === "CARD_DRAWN") : undefined;
     if (card) setModal("card");
-    else if (newState.phase === "BUY_DECISION") setModal("property");
+    else if (newState.phase === "BUY_DECISION" && isHumanTurn) setModal("property");
     else if (newState.phase === "AUCTION") setModal("auction");
-    else if (newState.phase === "DEBT") setModal("debt");
+    else if (newState.phase === "DEBT" && isHumanTurn) setModal("debt");
     else setModal(null);
 
     if (!isMultiplayer) localStorage.setItem(SAVE_KEY, JSON.stringify(newState));
-  }, [spawnFloat, playCash, isMultiplayer]);
+  }, [spawnFloat, playCash, isMultiplayer, myPlayerId]);
 
   // ─── Start local game ──────────────────────────────────
   const startLocalGame = useCallback((settings: Partial<GameSettings>): void => {
@@ -468,6 +537,7 @@ function App(): JSX.Element {
         chatMessages={chatMessages}
         emoteEvents={emoteEvents}
         reconnectToken={reconnectToken}
+        lastMovedPlayerId={lastMovedPlayerId}
       />
       <MoneyFloats floats={floats} />
       <ToastStack toasts={toasts} />
@@ -719,6 +789,7 @@ function GameView(props: {
   chatMessages: ChatMessage[];
   emoteEvents: EmoteEvent[];
   reconnectToken: string | null;
+  lastMovedPlayerId: string | null;
 }) {
   const { state, events } = props;
   const current = state.players.find(p => p.id === state.currentPlayerId)!;
@@ -760,8 +831,8 @@ function GameView(props: {
         <aside className="game-left">
           <div className="panel-header">Travelers</div>
           <div id="players-grid">
-            {state.players.map(p => (
-              <PlayerCard key={p.id} player={p} active={p.id === state.currentPlayerId} state={state} />
+            {state.players.map((p, idx) => (
+              <PlayerCard key={p.id} player={p} playerIndex={idx} active={p.id === state.currentPlayerId} state={state} />
             ))}
           </div>
           <div className="jackpot-bar">
@@ -793,8 +864,14 @@ function GameView(props: {
 
         {/* Center: Board */}
         <main className="game-center">
-          <Board state={state} diceRolling={props.diceRolling} apply={props.apply}
-            humanId={props.humanId} isMyTurn={isMyTurn} />
+          <Board
+            state={state}
+            diceRolling={props.diceRolling}
+            apply={props.apply}
+            humanId={props.humanId}
+            isMyTurn={isMyTurn}
+            lastMovedPlayerId={props.lastMovedPlayerId}
+          />
         </main>
 
         {/* Right: Log + Chat */}
@@ -838,7 +915,7 @@ function GameView(props: {
       {/* Modals */}
       {props.modal && (
         <ModalView modal={props.modal} state={state} events={events} card={lastCard}
-          setModal={props.setModal} apply={props.apply} />
+          setModal={props.setModal} apply={props.apply} humanId={props.humanId} />
       )}
 
       {/* Game over */}
@@ -855,14 +932,18 @@ function GameView(props: {
 }
 
 // ─── Player Card ──────────────────────────────────────────
-function PlayerCard({ player, active, state }: { player: Player; active: boolean; state: GameState }) {
+function PlayerCard({ player, playerIndex, active, state }: { player: Player; playerIndex: number; active: boolean; state: GameState }) {
   const ownedProps = Object.values(state.properties).filter(p => p.ownerId === player.id);
+  const color = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length];
   return (
     <div className={`player-card ${active ? "active" : ""} ${player.bankrupt ? "bankrupt" : ""}`}
+      style={{ "--card-player-color": color } as React.CSSProperties}
       aria-current={active ? "true" : undefined}>
-      {active && <div className="active-indicator" />}
+      {active && <div className="active-indicator" style={{ background: color }} />}
       <div className="player-card-top">
-        <div className="player-avatar">{player.token ?? "🎮"}</div>
+        <div className="player-avatar" style={{ border: `2px solid ${color}`, borderRadius: "50%", padding: 2 }}>
+          {player.token ?? "🎮"}
+        </div>
         <div className="player-info">
           <div className="player-name">{player.name}</div>
           <div className="player-sub">
@@ -890,13 +971,16 @@ function PlayerCard({ player, active, state }: { player: Player; active: boolean
 }
 
 // ─── Board ────────────────────────────────────────────────
-function Board({ state, diceRolling, apply, humanId, isMyTurn }: {
+function Board({ state, diceRolling, apply, humanId, isMyTurn, lastMovedPlayerId }: {
   state: GameState;
   diceRolling: boolean;
   apply: (a: Action) => void;
   humanId: string | null;
   isMyTurn: boolean;
+  lastMovedPlayerId: string | null;
 }) {
+  const playerIndexMap = useMemo(() => new Map(state.players.map((p, idx) => [p.id, idx])), [state.players]);
+
   // Map player positions to tiles (multiple per tile)
   const posMap = new Map<number, Player[]>();
   for (const p of state.players.filter(p => !p.bankrupt)) {
@@ -961,28 +1045,34 @@ function Board({ state, diceRolling, apply, humanId, isMyTurn }: {
                   {/* Owner dot */}
                   {propState?.ownerId && (() => {
                     const owner = state.players.find(p => p.id === propState.ownerId);
-                    const ownerTokenColors = ["#ff6b35", "#2ec4b6", "#9b5de5", "#f9d423"] as const;
                     const ownerIdx = state.players.findIndex(p => p.id === propState.ownerId);
                     return (
-                      <div className="tile-owner-dot" style={{ background: ownerTokenColors[ownerIdx % 4] ?? "#aaa" }}
+                      <div className="tile-owner-dot" style={{ background: PLAYER_COLORS[ownerIdx % PLAYER_COLORS.length] ?? "#aaa" }}
                         title={owner?.name ?? ""} />
                     );
                   })()}
                 </div>
               )}
 
-              {/* Player tokens */}
-              {players.map((p, i) => (
-                <div key={p.id} className="board-token anim-hop"
-                  style={{
-                    bottom: 2 + Math.floor(i / 2) * 18,
-                    left: `${10 + (i % 2) * 45}%`,
-                    transform: "translateX(-50%)",
-                  }}
-                  aria-label={`${p.name}'s token`}>
-                  {p.token ?? "🎮"}
+              {/* Elevated, High-Visibility Player Pieces Tray */}
+              {players.length > 0 && (
+                <div className={`tile-tokens-tray ${isCorner ? "corner-tray" : ""}`}>
+                  {players.map((p) => {
+                    const idx = playerIndexMap.get(p.id) ?? 0;
+                    const isTurn = p.id === state.currentPlayerId;
+                    const isJustMoved = lastMovedPlayerId === p.id;
+                    return (
+                      <PlayerPiece
+                        key={p.id}
+                        player={p}
+                        playerIndex={idx}
+                        isCurrentTurn={isTurn}
+                        isJustMoved={isJustMoved}
+                      />
+                    );
+                  })}
                 </div>
-              ))}
+              )}
             </div>
           );
         })}
@@ -999,11 +1089,22 @@ function Board({ state, diceRolling, apply, humanId, isMyTurn }: {
             <div className="board-deck board-deck-chest" title="Community Chest cards">✦ Chest</div>
           </div>
 
-          {/* Dice display */}
-          <div className="dice-area">
-            <Die value={state.dice?.[0] ?? null} rolling={diceRolling} />
-            <Die value={state.dice?.[1] ?? null} rolling={diceRolling} />
+          {/* Dice display with active 3D tumble */}
+          <div className={`dice-area ${diceRolling ? "is-rolling-area" : ""}`}>
+            <Die value={state.dice?.[0] ?? null} rolling={diceRolling} dieIndex={0} />
+            <Die value={state.dice?.[1] ?? null} rolling={diceRolling} dieIndex={1} />
           </div>
+
+          {/* Dynamic roll result pill */}
+          {state.dice && !diceRolling && (
+            <div className={`dice-result-pill anim-bounce ${state.dice[0] === state.dice[1] ? "is-doubles-banner" : ""}`}>
+              {state.dice[0] === state.dice[1] ? (
+                <>🎲 DOUBLES! Rolled {state.dice[0] + state.dice[1]} ({state.dice[0]} + {state.dice[1]}) · Roll again!</>
+              ) : (
+                <>Rolled {state.dice[0] + state.dice[1]} ({state.dice[0]} + {state.dice[1]})</>
+              )}
+            </div>
+          )}
 
           {/* Roll button in center */}
           {state.phase === "ROLL" && isMyTurn && (
@@ -1126,11 +1227,14 @@ function ModalView(props: {
   card: GameEvent | undefined;
   setModal: (m: Modal) => void;
   apply: (a: Action) => void;
+  humanId: string | null;
 }) {
   if (!props.modal) return null;
   const close = () => props.setModal(null);
+  const isHuman = props.state.currentPlayerId === (props.humanId ?? "player-1");
 
   if (props.modal === "property") {
+    if (!isHuman) return null;
     const tile = getTile(props.state.lastLandedTile ?? 0);
     const player = props.state.players.find(p => p.id === props.state.currentPlayerId);
     const canAfford = (player?.cash ?? 0) >= (tile.price ?? 0);
