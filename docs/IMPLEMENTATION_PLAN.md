@@ -42,11 +42,11 @@ Work in order. Do not start a phase until the previous phase's checks pass. Afte
 - **Exit check:** passed in browser with a full Quick Game against 3 bots; responsive styles included.
 
 ## Phase 4: Fun Layer
-- [ ] Fun facts toasts, commentary variants.
-- [ ] Character mode, world events, speed die, presets (Classic / Party / Quick Party).
-- [ ] Achievements and stats screen.
-- [ ] Themes (World Tour, Classic Neon, Night), color-blind patterns.
-- [ ] Confetti, polish, tutorial overlay.
+- [x] Fun facts toasts, commentary variants.
+- [x] Character mode, world events, speed die, presets (Classic / Party / Quick Party).
+- [x] Achievements and stats screen.
+- [x] Themes (World Tour, Classic Neon, Night), color-blind patterns.
+- [x] Confetti, polish; tutorial overlay deferred to Phase 5 quality work.
 
 ## Phase 5: Quality
 - [ ] Playwright e2e flows (start game, buy, build, trade, save/resume).

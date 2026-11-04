@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   board, createGame, getTile, reduce,
   type Action, type GameEvent, type GameSettings, type GameState, type Player,
@@ -13,6 +13,18 @@ const TOKENS = ["🚀", "🐪", "🦙", "🌐", "📷", "🧳"];
 const botProfiles: BotProfile[] = profiles();
 
 function fmt(v: number): string { return `$${Math.max(0, v).toLocaleString()}`; }
+function eventText(e: GameEvent): string {
+  const text: Record<string, string> = {
+    DICE_ROLLED: "The dice are in the air!",
+    PROPERTY_BOUGHT: "A new deed joins the travel portfolio.",
+    RENT_PAID: "Someone's itinerary just got expensive.",
+    PASSED_GO: "Passport stamped: collect your salary.",
+    WORLD_EVENT: `The world changed: ${String(e.name ?? "new event")}.`,
+    FUN_FACT: `Fun fact: ${String(e.fact ?? "")}`,
+    CHARACTER_PERK_USED: "A character perk shakes up the table."
+  };
+  return text[e.type] ?? e.type.replace(/_/g, " ").toLowerCase();
+}
 function tileName(i: number): string { return getTile(i).name; }
 
 // ─── Die pip layouts ──────────────────────────────────────
@@ -244,6 +256,18 @@ function App(): JSX.Element {
 
     setState(newState);
     setEvents(newEvents);
+    for (const item of newEvents) {
+      if (item.type === "FUN_FACT" && typeof item.fact === "string") addToast(`💡 ${item.fact}`, "info");
+      if (item.type === "WORLD_EVENT" && typeof item.name === "string") addToast(`🌍 ${item.name}: ${String(item.description)}`, "info");
+      if (item.type === "CHARACTER_PERK_USED") addToast("✨ Character perk used!", "success");
+    }
+    if (newState.settings.achievements) {
+      const unlocked = new Set(JSON.parse(localStorage.getItem("mwt.achievements") ?? "[]") as string[]);
+      if (newEvents.some(e => e.type === "PROPERTY_BOUGHT")) unlocked.add("First Purchase");
+      if (newEvents.some(e => e.type === "BUILT")) unlocked.add("Landlord");
+      if (newEvents.some(e => e.type === "SENT_TO_JAIL") && newState.players.some(p => !p.inJail && p.jailTurns === 0)) unlocked.add("Escape Artist");
+      localStorage.setItem("mwt.achievements", JSON.stringify([...unlocked]));
+    }
 
     const isHumanTurn = newState.currentPlayerId === (isMultiplayer ? myPlayerId : "player-1");
     const card = isHumanTurn ? newEvents.find(e => e.type === "CARD_DRAWN") : undefined;
@@ -406,7 +430,7 @@ function App(): JSX.Element {
   };
 
   // ─── Routing ────────────────────────────────────────────
-  const appClass = `app${theme === "night" ? " night" : ""}`;
+  const appClass = `app${theme === "night" ? " night" : theme === "neon" ? " neon" : ""}`;
 
   if (screen === "menu") return (
     <div className={appClass}>
@@ -458,8 +482,9 @@ function App(): JSX.Element {
   if (screen === "stats") return (
     <div className={appClass}>
       <InfoScreen title="Achievements & Stats" eyebrow="Records" onBack={() => setScreen("menu")}>
-        <p>🏆 Jet Setter · 🏠 Landlord · 🎲 Escape Artist · 💰 Comeback Kid · 🏨 Hotel Mogul</p>
-        <p>Your local games are saved on this device. Full achievement tracking arrives with the quality phase.</p>
+        <p>🏆 First Purchase · 🏠 Landlord · 🎲 Escape Artist · 💰 Comeback Kid · 🏨 Hotel Mogul · 🌍 Jet Setter</p>
+        <p>Unlocked: {(JSON.parse(localStorage.getItem("mwt.achievements") ?? "[]") as string[]).join(" · ") || "No achievements yet"}</p>
+        <p>Your achievement history is saved locally on this device.</p>
       </InfoScreen>
     </div>
   );
@@ -469,15 +494,9 @@ function App(): JSX.Element {
       <InfoScreen title="Settings" eyebrow="Preferences" onBack={() => setScreen("menu")}>
         <div className="panel" style={{ marginTop: 16 }}>
           <div className="section-label">Display</div>
-          <label className="toggle-row" style={{ cursor: "pointer" }}>
-            <span>Dark mode</span>
-            <input type="checkbox" className="toggle-input" checked={theme === "night"} onChange={e => {
-              const t = e.target.checked ? "night" : "day";
-              setTheme(t as Theme);
-              localStorage.setItem("mwt.theme", t);
-            }} />
-            <span className="toggle-thumb" />
-          </label>
+          <div className="segmented">
+            {(["day", "neon", "night"] as const).map(t => <button key={t} className={theme === t ? "active" : ""} onClick={() => { setTheme(t); localStorage.setItem("mwt.theme", t); }}>{t === "day" ? "🌍 World Tour" : t === "neon" ? "💡 Classic Neon" : "🌙 Night Mode"}</button>)}
+          </div>
           <div className="section-label">Audio</div>
           <label className="toggle-row" style={{ cursor: "pointer" }}>
             <span>Mute all sounds</span>
@@ -609,6 +628,13 @@ function Setup({ onStart, onBack }: { onStart: (s: Partial<GameSettings>) => voi
   const [auction, setAuction] = useState(true);
   const [jackpot, setJackpot] = useState(false);
   const [doubleGo, setDoubleGo] = useState(false);
+  const [speedDie, setSpeedDie] = useState(false);
+  const [characterMode, setCharacterMode] = useState(false);
+  const [worldEvents, setWorldEvents] = useState(false);
+  const [funFacts, setFunFacts] = useState(true);
+  const [commentary, setCommentary] = useState(true);
+  const [colorBlindMode, setColorBlindMode] = useState(false);
+  const [preset, setPreset] = useState<GameSettings["preset"]>("classic");
 
   const travelerInfo = [
     { token: TOKENS[0]!, name: "You", role: "Human", badgeClass: "badge-human" },
@@ -644,9 +670,18 @@ function Setup({ onStart, onBack }: { onStart: (s: Partial<GameSettings>) => voi
             ))}
           </div>
           <div className="section-label">House rules</div>
+          <div className="segmented">
+            {(["classic", "party", "quick_party"] as const).map(p => <button key={p} className={preset === p ? "active" : ""} onClick={() => { setPreset(p); if (p === "quick_party") setMode("quick"); }}>{p === "classic" ? "Classic" : p === "party" ? "Party" : "Quick Party"}</button>)}
+          </div>
           <ToggleRow label="Auction on decline" value={auction} onChange={setAuction} />
           <ToggleRow label="Free Parking jackpot" value={jackpot} onChange={setJackpot} />
           <ToggleRow label="Double GO bonus" value={doubleGo} onChange={setDoubleGo} />
+          <ToggleRow label="Speed die" value={speedDie} onChange={setSpeedDie} />
+          <ToggleRow label="Character mode & perks" value={characterMode} onChange={setCharacterMode} />
+          <ToggleRow label="World events" value={worldEvents} onChange={setWorldEvents} />
+          <ToggleRow label="Fun facts" value={funFacts} onChange={setFunFacts} />
+          <ToggleRow label="Funny commentary" value={commentary} onChange={setCommentary} />
+          <ToggleRow label="Color-blind patterns" value={colorBlindMode} onChange={setColorBlindMode} />
         </div>
         <div className="panel">
           <div className="section-label">Your table</div>
@@ -661,7 +696,7 @@ function Setup({ onStart, onBack }: { onStart: (s: Partial<GameSettings>) => voi
             </div>
           ))}
           <button className="btn btn-primary btn-lg" style={{ width: "100%", marginTop: 24 }}
-            onClick={() => onStart({ mode, startingCash: cash, auctionOnDecline: auction, freeParkingJackpot: jackpot, doubleGoBonus: doubleGo })}>
+            onClick={() => onStart({ mode, preset, startingCash: cash, auctionOnDecline: auction, freeParkingJackpot: jackpot, doubleGoBonus: doubleGo, speedDie, characterMode, worldEvents, funFacts, commentary, colorBlindMode })}>
             Start game →
           </button>
         </div>
@@ -827,6 +862,9 @@ function GameView(props: {
 
       {/* Main layout */}
       <div className="game-layout">
+        {(state.activeEvents ?? []).length > 0 && (
+          <div className="world-event-banner" role="status">🌍 {(state.activeEvents ?? []).map(e => `${e.name}: ${e.description}`).join(" · ")}</div>
+        )}
         {/* Left: Players */}
         <aside className="game-left">
           <div className="panel-header">Travelers</div>
@@ -880,7 +918,7 @@ function GameView(props: {
           <div className="log-scroll" aria-live="polite" style={{ maxHeight: 300 }}>
             {events.map((e, i) => (
               <div key={`ev-${i}`} className={`log-entry event-entry ${e.type === "PAYMENT_DUE" || e.type === "PASSED_GO" ? "money-event" : ""}`}>
-                {e.type.replace(/_/g, " ").toLowerCase()}
+                {state.settings.commentary ? eventText(e) : e.type.replace(/_/g, " ").toLowerCase()}
               </div>
             ))}
             {state.log.slice(-20).reverse().map((entry, i) => (
@@ -1012,7 +1050,7 @@ function Board({ state, diceRolling, apply, humanId, isMyTurn, lastMovedPlayerId
               key={tile.index}
               role="gridcell"
               aria-label={`${tile.name}${propState?.ownerId ? `, owned` : ""}${players.length > 0 ? `, ${players.map(p => p.name).join(", ")} here` : ""}`}
-              className={`tile tile-pos-${tile.index} ${sideClass} ${isCorner ? "tile-corner-wrapper" : ""} ${propState?.mortgaged ? "mortgaged-tile" : ""}`}
+              className={`tile tile-pos-${tile.index} ${sideClass} ${isCorner ? "tile-corner-wrapper" : ""} ${propState?.mortgaged ? "mortgaged-tile" : ""} ${state.settings.colorBlindMode && tile.colorGroup ? "patterned-group" : ""}`}
               style={{ cursor: "default" }}
             >
               {/* Color band */}
@@ -1093,6 +1131,7 @@ function Board({ state, diceRolling, apply, humanId, isMyTurn, lastMovedPlayerId
           <div className={`dice-area ${diceRolling ? "is-rolling-area" : ""}`}>
             <Die value={state.dice?.[0] ?? null} rolling={diceRolling} dieIndex={0} />
             <Die value={state.dice?.[1] ?? null} rolling={diceRolling} dieIndex={1} />
+            {state.dice?.[2] && <div className="speed-die" aria-label={`Speed die ${String(state.dice[2])}`}>⚡ {String(state.dice[2]).replace("_", " ")}</div>}
           </div>
 
           {/* Dynamic roll result pill */}
@@ -1140,6 +1179,11 @@ function ActionBar({ state, apply, humanId }: { state: GameState; apply: (a: Act
       {state.phase === "ROLL" && (
         <button className="btn btn-primary" disabled={disabled} onClick={() => apply({ type: "ROLL_DICE" })} aria-label="Roll dice">
           🎲 Roll dice
+        </button>
+      )}
+      {state.settings.characterMode && humanPlayer?.characterPerk && !humanPlayer.characterPerkUsed && (
+        <button className="btn btn-teal" disabled={disabled} onClick={() => apply({ type: "USE_CHARACTER_PERK" })}>
+          ✨ Use {humanPlayer.characterPerk} perk
         </button>
       )}
 

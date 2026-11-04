@@ -43,6 +43,44 @@
   --tile-border: #3a3020;
 }
 
+.app.neon {
+  --bg: #130b24;
+  --bg2: #21113b;
+  --paper: #241442;
+  --ink: #fff3ff;
+  --muted: #c6a9d8;
+  --line: #623c86;
+  --accent: #ff3cac;
+  --accent-2: #00e5ff;
+  --board-border: #ff3cac;
+  --board-bg: #241442;
+  --board-center: #1b1031;
+  --tile-border: #704b91;
+}
+
+.patterned-group .tile-band {
+  background-image: repeating-linear-gradient(135deg, #ffffff55 0 2px, transparent 2px 6px);
+}
+
+.world-event-banner {
+  grid-column: 1 / -1;
+  padding: 10px 14px;
+  border: 1px solid var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-2) 12%, var(--paper));
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.speed-die {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--accent-3);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ─── Reset ─────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; }
 html { scroll-behavior: smooth; }

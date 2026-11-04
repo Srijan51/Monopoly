@@ -1,13 +1,13 @@
 import { board, cards, getCard, getTile } from "./data.js";
 import { randomInt, shuffle } from "./rng.js";
-import type { Action, Auction, GameEvent, GameSettings, GameState, NewPlayer, Player, PropertyState, ReduceResult } from "./types.js";
+import type { Action, Auction, GameEvent, GameSettings, GameState, NewPlayer, Player, PropertyState, ReduceResult, SpeedDieFace, WorldEvent } from "./types.js";
 
 const jail = 10;
 const go = 0;
 const defaultSettings: GameSettings = {
   startingCash: board.startingCash, goSalary: board.goSalary, auctionOnDecline: true, freeParkingJackpot: false,
-  doubleGoBonus: false, speedDie: false, characterMode: false, worldEvents: false, mode: "classic",
-  quickTargetNetWorth: 5000, maxRounds: null, seed: 1
+  doubleGoBonus: false, speedDie: false, characterMode: false, worldEvents: false, funFacts: true, commentary: true,
+  achievements: true, colorBlindMode: false, preset: "classic", mode: "classic", quickTargetNetWorth: 5000, maxRounds: null, seed: 1
 };
 const copy = (state: GameState): GameState => structuredClone(state);
 const activePlayer = (state: GameState): Player => {
@@ -78,18 +78,25 @@ function charge(state: GameState, payer: Player, amount: number, creditor?: Play
 function resolveLanding(state: GameState, player: Player, events: GameEvent[], rentMultiplier = 1): void {
   const tile = getTile(player.position);
   state.lastLandedTile = tile.index;
+  if (!player.visitedTiles.includes(tile.index)) {
+    player.visitedTiles.push(tile.index);
+    if (state.settings.funFacts && tile.funFact) events.push(event("FUN_FACT", { tileIndex: tile.index, fact: tile.funFact }));
+  }
   if (tile.type === "property" || tile.type === "railroad" || tile.type === "utility") {
     const property = state.properties[tile.index]!;
     if (!property.ownerId) { state.phase = "BUY_DECISION"; return; }
     if (property.ownerId !== player.id) {
       const owner = state.players.find((item) => item.id === property.ownerId);
-      if (owner) charge(state, player, propertyRent(state, tile.index, state.dice?.[0]! + state.dice?.[1]!, rentMultiplier), owner, events);
+      const eventMultiplier = state.activeEvents.some((item) => item.id === "carnival" && item.colorGroup === tile.colorGroup)
+        ? 2 : state.activeEvents.some((item) => item.id === "monsoon" && tile.type === "railroad") ? 0.5 : 1;
+      const shield = player.perkEffect === "rent_shield" ? 0.5 : 1;
+      if (owner) charge(state, player, propertyRent(state, tile.index, state.dice?.[0]! + state.dice?.[1]!, rentMultiplier * eventMultiplier * shield), owner, events);
       events.push(event("RENT_PAID", { tileIndex: tile.index }));
     }
   } else if (tile.type === "tax") {
     charge(state, player, tile.amount ?? 0, undefined, events);
   } else if (tile.type === "go_to_jail") {
-    player.position = jail; player.inJail = true; player.jailTurns = 0; player.consecutiveDoubles = 0;
+    if (player.perkEffect !== "jail_immunity") { player.position = jail; player.inJail = true; player.jailTurns = 0; player.consecutiveDoubles = 0; }
     state.phase = "POST_ROLL"; events.push(event("SENT_TO_JAIL", { playerId: player.id }));
   } else if (tile.type === "free_parking" && state.settings.freeParkingJackpot) {
     money(player, state.freeParkingPot); events.push(event("JACKPOT_COLLECTED", { amount: state.freeParkingPot })); state.freeParkingPot = 0;
@@ -131,11 +138,25 @@ function resolveLanding(state: GameState, player: Player, events: GameEvent[], r
   }
   if (state.phase !== "DEBT" && state.phase !== "BUY_DECISION") state.phase = "POST_ROLL";
 }
-function endTurn(state: GameState): void {
+function endTurn(state: GameState, events: GameEvent[]): void {
   const index = state.players.findIndex((player) => player.id === state.currentPlayerId);
   for (let offset = 1; offset <= state.players.length; offset += 1) {
     const player = state.players[(index + offset) % state.players.length]!;
-    if (!player.bankrupt) { state.currentPlayerId = player.id; state.phase = player.inJail ? "JAIL_DECISION" : "ROLL"; state.round += offset > 0 ? 1 : 0; return; }
+    if (!player.bankrupt) {
+      state.currentPlayerId = player.id; state.phase = player.inJail ? "JAIL_DECISION" : "ROLL"; state.round += offset > 0 ? 1 : 0;
+      state.activeEvents = state.activeEvents.map((item) => ({ ...item, roundsRemaining: item.roundsRemaining - 1 })).filter((item) => item.roundsRemaining > 0);
+      if (state.settings.worldEvents && state.round % 8 === 0) {
+        const choices: WorldEvent[] = [
+          { id: "carnival", name: "Street Carnival", description: "Pink properties charge double rent.", roundsRemaining: 8, colorGroup: "pink" },
+          { id: "market", name: "Market Rally", description: "Every traveler receives $50.", roundsRemaining: 8 },
+          { id: "monsoon", name: "Monsoon Season", description: "Railroads charge half rent.", roundsRemaining: 8 }
+        ];
+        const pick = choices[state.round / 8 % choices.length]!;
+        state.activeEvents.push(pick); events.push(event("WORLD_EVENT", { ...pick }));
+        if (pick.id === "market") state.players.filter((item) => !item.bankrupt).forEach((item) => money(item, 50));
+      }
+      return;
+    }
   }
   state.phase = "GAME_OVER";
 }
@@ -153,13 +174,15 @@ export function createGame(players: NewPlayer[], settings: Partial<GameSettings>
   const merged = { ...defaultSettings, ...settings };
   const decks = shuffle(cards.filter((card) => card.deck === "chance").map((card) => card.id), merged.seed);
   const chest = shuffle(cards.filter((card) => card.deck === "community_chest").map((card) => card.id), decks.state);
-  const playerState: Player[] = players.map((player) => ({ ...player, cash: merged.startingCash, position: 0, inJail: false, jailTurns: 0, getOutOfJailCards: 0, bankrupt: false, consecutiveDoubles: 0 }));
+  const perks = ["rocket", "camel", "llama", "globe", "camera", "suitcase"] as const;
+  const playerState: Player[] = players.map((player, index) => ({ ...player, ...(merged.characterMode ? { characterPerk: perks[index % perks.length] } : {}), cash: merged.startingCash, position: 0, inJail: false, jailTurns: 0, getOutOfJailCards: 0, bankrupt: false, consecutiveDoubles: 0, characterPerkUsed: false, visitedTiles: [] }));
   const properties: Record<number, PropertyState> = {};
   for (const index of propertyTiles()) properties[index] = { tileIndex: index, ownerId: null, houses: 0, mortgaged: false };
-  return { players: playerState, properties, currentPlayerId: playerState[0]!.id, phase: "ROLL", dice: null, chanceDeck: decks.values, chestDeck: chest.values, discard: { chance: [], chest: [] }, houseSupply: board.totalHouses, hotelSupply: board.totalHotels, freeParkingPot: 0, pendingAuction: null, pendingTrade: null, round: 1, log: [], settings: merged, rngState: chest.state, winnerId: null, lastLandedTile: null };
+  return { players: playerState, properties, currentPlayerId: playerState[0]!.id, phase: "ROLL", dice: null, chanceDeck: decks.values, chestDeck: chest.values, discard: { chance: [], chest: [] }, houseSupply: board.totalHouses, hotelSupply: board.totalHotels, freeParkingPot: 0, pendingAuction: null, pendingTrade: null, activeEvents: [], round: 1, log: [], settings: merged, rngState: chest.state, winnerId: null, lastLandedTile: null };
 }
 export function reduce(input: GameState, action: Action): ReduceResult {
   const state = copy(input); const player = activePlayer(state); const events: GameEvent[] = [];
+  state.activeEvents ??= [];
   if (player.bankrupt) throw new Error("Bankrupt player cannot act");
   switch (action.type) {
     case "ROLL_DICE": {
@@ -172,9 +195,16 @@ export function reduce(input: GameState, action: Action): ReduceResult {
         const second = randomInt(first.state, 6);
         dice = [first.value + 1, second.value + 1];
         state.rngState = second.state;
+        if (player.perkEffect === "lucky_doubles") { dice[1] = dice[0]; delete player.perkEffect; }
       }
-      state.dice = dice;
-      events.push(event("DICE_ROLLED", { dice }));
+      let speedFace: SpeedDieFace | undefined;
+      if (state.settings.speedDie && !action.dice) {
+        const roll = randomInt(state.rngState, 6);
+        state.rngState = roll.state;
+        speedFace = roll.value <= 3 ? roll.value as SpeedDieFace : roll.value === 4 || roll.value === 5 ? "mr_tycoon" : "bus";
+      }
+      state.dice = speedFace === undefined ? dice : [dice[0], dice[1], speedFace];
+      events.push(event("DICE_ROLLED", { dice: state.dice }));
       if (state.phase === "JAIL_DECISION") {
         if (dice[0] === dice[1]) { player.inJail = false; player.jailTurns = 0; movePlayer(state, player, dice[0] + dice[1], events); resolveLanding(state, player, events); }
         else { player.jailTurns += 1; if (player.jailTurns >= 3) { charge(state, player, 50, undefined, events); player.inJail = false; player.jailTurns = 0; state.phase = "ROLL"; } else state.phase = "JAIL_DECISION"; }
@@ -182,7 +212,8 @@ export function reduce(input: GameState, action: Action): ReduceResult {
       }
       if (dice[0] === dice[1]) player.consecutiveDoubles += 1; else player.consecutiveDoubles = 0;
       if (player.consecutiveDoubles >= 3) { player.position = jail; player.inJail = true; player.consecutiveDoubles = 0; state.phase = "POST_ROLL"; events.push(event("SENT_TO_JAIL", { playerId: player.id })); break; }
-      movePlayer(state, player, dice[0] + dice[1], events); resolveLanding(state, player, events);
+      const speedBonus = typeof speedFace === "number" ? speedFace : 0;
+      movePlayer(state, player, dice[0] + dice[1] + speedBonus, events); resolveLanding(state, player, events);
       if (dice[0] === dice[1] && (state.phase as string) === "POST_ROLL") state.phase = "ROLL";
       break;
     }
@@ -243,7 +274,7 @@ export function reduce(input: GameState, action: Action): ReduceResult {
     }
     case "DECLARE_BANKRUPTCY": {
       if (state.phase !== "DEBT" || player.cash >= 0) throw new Error("Bankruptcy is not available");
-      player.bankrupt = true; for (const property of Object.values(state.properties)) if (property.ownerId === player.id) property.ownerId = null; events.push(event("PLAYER_BANKRUPT", { playerId: player.id })); checkWin(state); if ((state.phase as string) !== "GAME_OVER") endTurn(state); break;
+      player.bankrupt = true; for (const property of Object.values(state.properties)) if (property.ownerId === player.id) property.ownerId = null; events.push(event("PLAYER_BANKRUPT", { playerId: player.id })); checkWin(state); if ((state.phase as string) !== "GAME_OVER") endTurn(state, events); break;
     }
     case "PROPOSE_TRADE": {
       if (state.phase !== "POST_ROLL" || action.toPlayerId === player.id || action.cash < 0 || !Number.isInteger(action.cash)) throw new Error("Invalid trade offer");
@@ -271,7 +302,21 @@ export function reduce(input: GameState, action: Action): ReduceResult {
       const offer = state.pendingTrade;
       state.pendingTrade = null; state.currentPlayerId = offer.fromPlayerId; events.push(event("TRADE_DECLINED", { playerId: player.id })); break;
     }
-    case "END_TURN": if (state.phase !== "POST_ROLL" && !(state.phase === "DEBT" && player.cash >= 0)) throw new Error("Cannot end turn now"); player.consecutiveDoubles = 0; endTurn(state); break;
+    case "USE_CHARACTER_PERK": {
+      if (!state.settings.characterMode || player.characterPerkUsed) throw new Error("Character perk is unavailable");
+      if (player.characterPerk === "camel") player.perkEffect = "rent_shield";
+      else if (player.characterPerk === "llama") player.perkEffect = "jail_immunity";
+      else if (player.characterPerk === "rocket") player.perkEffect = "lucky_doubles";
+      else if (player.characterPerk === "camera") money(player, 100);
+      else if (player.characterPerk === "globe") money(player, state.properties[player.position] && getTile(player.position).type === "railroad" ? 100 : 50);
+      else if (player.characterPerk === "suitcase") {
+        const target = state.players.find((item) => item.id === action.targetPlayerId && !item.bankrupt);
+        if (!target) throw new Error("Choose a valid traveler");
+        [player.position, target.position] = [target.position, player.position];
+      }
+      player.characterPerkUsed = true; events.push(event("CHARACTER_PERK_USED", { playerId: player.id, perk: player.characterPerk })); break;
+    }
+    case "END_TURN": if (state.phase !== "POST_ROLL" && !(state.phase === "DEBT" && player.cash >= 0)) throw new Error("Cannot end turn now"); player.consecutiveDoubles = 0; endTurn(state, events); break;
   }
   checkWin(state);
   return { state, events };
